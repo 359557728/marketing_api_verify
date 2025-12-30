@@ -1,0 +1,21 @@
+[package]
+name = "marketing_api_verify"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = { version = "*", features = ["json"] }
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+governor = "*"
+chrono = "*"
+mysql = "*"
+tokio = { version = "*", features = ["macros", "rt-multi-thread"] }
+redis = { version = "*", features = ["cluster", "r2d2"] }
+r2d2 = "*"
+log = "*"
+env_logger = "*"
+serde_with = "*"
+thiserror = "*"
+retry_macro = { git = "https://github.com/359557728/retry_macro.git", branch = "main" }
+fastrand = "*"

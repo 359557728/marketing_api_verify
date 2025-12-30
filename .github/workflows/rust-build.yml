@@ -1,0 +1,65 @@
+name: Build Rust Program on CentOS 7
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build in CentOS 7
+        uses: addnab/docker-run-action@v3
+        with:
+          image: centos:7
+          options: -v ${{ github.workspace }}:/app:rw -w /app
+          run: |
+            # Update CentOS 7 mirrors to vault
+            if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
+                sed -i 's|mirrorlist=.*|baseurl=http://vault.centos.org/7.9.2009/os/x86_64/|' /etc/yum.repos.d/CentOS-Base.repo
+            fi
+
+            if [ -f /etc/yum.repos.d/CentOS-Updates.repo ]; then
+                sed -i 's|mirrorlist=.*|baseurl=http://vault.centos.org/7.9.2009/updates/x86_64/|' /etc/yum.repos.d/CentOS-Updates.repo
+            else
+                echo -e "[updates]\nname=CentOS-7 Updates\nbaseurl=http://vault.centos.org/7.9.2009/updates/x86_64/\ngpgcheck=1\nenabled=1" > /etc/yum.repos.d/CentOS-Updates.repo
+            fi
+
+            if [ -f /etc/yum.repos.d/CentOS-Extras.repo ]; then
+                sed -i 's|mirrorlist=.*|baseurl=http://vault.centos.org/7.9.2009/extras/x86_64/|' /etc/yum.repos.d/CentOS-Extras.repo
+            else
+                echo -e "[extras]\nname=CentOS-7 Extras\nbaseurl=http://vault.centos.org/7.9.2009/extras/x86_64/\ngpgcheck=1\nenabled=1" > /etc/yum.repos.d/CentOS-Extras.repo
+            fi
+            
+            yum clean all
+            yum update -y
+            yum groupinstall -y "Development Tools"
+            yum install -y git wget tar gcc gcc-c++ make openssl-devel
+
+            # Install Rust
+            curl https://sh.rustup.rs -sSf | sh -s -- -y
+            source $HOME/.cargo/env
+            
+            # Format Code
+            cargo fmt --all --check
+
+            # Verify Rust installation
+            rustc --version
+            cargo --version
+
+            # Build the Rust program
+            cargo build --release
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build
+          path: target/release/marketing_api_verify
