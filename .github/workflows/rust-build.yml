@@ -22,7 +22,8 @@ jobs:
           set -euo pipefail
           dnf clean all
           dnf -y groupinstall "Development Tools"
-          dnf -y install git wget tar gcc gcc-c++ make openssl-devel curl
+          dnf -y swap curl-minimal curl
+          dnf -y install git wget tar gcc gcc-c++ make openssl-devel
           dnf -y install epel-release || true
 
       - name: Install Rust
