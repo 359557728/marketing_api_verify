@@ -2,46 +2,45 @@ name: Build Rust Program on Rocky Linux 9
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: rockylinux:9
-      options: -v ${{ github.workspace }}:/app:rw -w /app
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-          set -euo pipefail
-          dnf clean all
-          dnf -y groupinstall "Development Tools"
-          dnf -y swap curl-minimal curl
-          dnf -y install git wget tar gcc gcc-c++ make openssl-devel
-          dnf -y install epel-release || true
+      - name: Build in Rocky Linux 9
+        uses: addnab/docker-run-action@v3
+        with:
+          image: rockylinux:9
+          options: -v ${{ github.workspace }}:/app:rw -w /app
+          run: |
+            # Update and install development tools and dependencies using dnf
+            dnf clean all
+            dnf update -y
+            dnf groupinstall -y "Development Tools"
+            dnf install -y git wget tar gcc gcc-c++ make openssl-devel
 
-      - name: Install Rust
-        run: |
-          set -euo pipefail
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+            # Install Rust
+            curl https://sh.rustup.rs -sSf | sh -s -- -y
+            source $HOME/.cargo/env
+            
+            # Format Code
+            cargo fmt --all --check
 
-      - name: Verify Rust installation
-        run: |
-          rustc --version
-          cargo --version
+            # Verify Rust installation
+            rustc --version
+            cargo --version
 
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-      - name: Build the Rust program
-        run: cargo build --release
+            # Build the Rust program
+            cargo build --release
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
