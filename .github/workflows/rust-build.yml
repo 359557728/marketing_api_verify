@@ -1,0 +1,49 @@
+name: Build Rust Program on Rocky Linux 9
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+      options: -v ${{ github.workspace }}:/app:rw -w /app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          dnf clean all
+          dnf -y groupinstall "Development Tools"
+          dnf -y install git wget tar gcc gcc-c++ make openssl-devel curl
+          dnf -y install epel-release || true
+
+      - name: Install Rust
+        run: |
+          set -euo pipefail
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Rust installation
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Build the Rust program
+        run: cargo build --release
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-build
+          path: target/release/marketing_api_verify
